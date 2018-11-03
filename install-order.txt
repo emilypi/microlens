@@ -4,3 +4,4 @@ microlens-ghc
 microlens-mtl
 microlens-platform
 microlens-contra
+microlens-pro
