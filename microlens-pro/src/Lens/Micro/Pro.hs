@@ -23,9 +23,23 @@ This module provides types and functions that require 'Profunctor'; they aren't 
 -}
 module Lens.Micro.Pro
 (
-  -- * Prisms
+  -- * Isomorphism: losslessly converts between types
+  Iso, Iso',
+  iso,
+  withIso,
+  from,
+  non,
+  non',
+  enum,
+  mapping,
+  coerced,
+  AReview,
+  review,
 
-  -- * Isomorphisms
+  -- * Prism: deconstructs sum types (half-traversal, half-isomorphism)
+  Prism, Prism',
+  prism, prism',
+  only,
 )
 where
 
@@ -36,7 +50,7 @@ import Data.Profunctor.Unsafe
 import Data.Tagged
 import Data.Functor.Identity
 import Data.Maybe
-import Lens.Micro
+import Lens.Micro hiding (non)
 
 #ifdef USE_COERCE
 import Data.Coerce
@@ -60,24 +74,6 @@ coerce' = unsafeCoerce
 {-# INLINE coerce #-}
 {-# INLINE coerce' #-}
 #endif
-
-----------------------------------------------------------------------------
--- Prisms
-----------------------------------------------------------------------------
-
-type Prism s t a b =
-  forall p f. (Choice p, Applicative f)
-  => p a (f b) -> p s (f t)
-
-type Prism' s a = Prism s s a a
-
-prism :: (b -> t) -> (s -> Either t a) -> Prism s t a b
-prism bt seta = dimap seta (either pure (fmap bt)) . right'
-{-# INLINE prism #-}
-
-prism' :: (b -> s) -> (s -> Maybe a) -> Prism s s a b
-prism' bs sma = prism bs (\s -> maybe (Left s) Right (sma s))
-{-# INLINE prism' #-}
 
 ----------------------------------------------------------------------------
 -- Isomorphisms
@@ -127,7 +123,9 @@ enum = iso toEnum fromEnum
 {-# INLINE enum #-}
 
 -- | This can be used to lift any 'Iso' into an arbitrary 'Functor'.
-mapping :: (Functor f, Functor g) => Iso s t a b -> Iso (f s) (g t) (f a) (g b)
+mapping
+  :: (Functor f, Functor g)
+  => Iso s t a b -> Iso (f s) (g t) (f a) (g b)
 mapping k = withIso k $ \ sa bt -> iso (fmap sa) (fmap bt)
 {-# INLINE mapping #-}
 
@@ -143,10 +141,6 @@ non' p = iso (fromMaybe def) go where
   go b | has p b                = Nothing
        | otherwise              = Just b
 {-# INLINE non' #-}
-
-only :: Eq a => a -> Prism' a ()
-only a = prism' (\() -> a) $ guard . (a ==)
-{-# INLINE only #-}
 
 type AReview t b = Tagged b (Identity b) -> Tagged t (Identity t)
 
@@ -167,3 +161,25 @@ coerced l = case sym Coercion :: Coercion a s of
 # endif
 {-# INLINE coerced #-}
 #endif
+
+----------------------------------------------------------------------------
+-- Prisms
+----------------------------------------------------------------------------
+
+type Prism s t a b =
+  forall p f. (Choice p, Applicative f)
+  => p a (f b) -> p s (f t)
+
+type Prism' s a = Prism s s a a
+
+prism :: (b -> t) -> (s -> Either t a) -> Prism s t a b
+prism bt seta = dimap seta (either pure (fmap bt)) . right'
+{-# INLINE prism #-}
+
+prism' :: (b -> s) -> (s -> Maybe a) -> Prism s s a b
+prism' bs sma = prism bs (\s -> maybe (Left s) Right (sma s))
+{-# INLINE prism' #-}
+
+only :: Eq a => a -> Prism' a ()
+only a = prism' (\() -> a) $ guard . (a ==)
+{-# INLINE only #-}
