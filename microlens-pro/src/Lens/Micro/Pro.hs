@@ -167,13 +167,3 @@ coerced l = case sym Coercion :: Coercion a s of
 # endif
 {-# INLINE coerced #-}
 #endif
-
--- TODO: think about porting 'lazy' and 'strict' and so on
-
--- TODO: non' clashes with microlens
-
--- TODO: _Empty would be useful (it's the only thing people use with non)
-
--- TODO: _Left, _Right, etc
-
--- TODO: makePrisms
