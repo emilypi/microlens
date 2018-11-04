@@ -1,3 +1,18 @@
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE RankNTypes #-}
+
+#ifndef MIN_VERSION_template_haskell
+#define MIN_VERSION_template_haskell(x,y,z) (defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 706)
+#endif
+
+#ifdef TRUSTWORTHY
+# if MIN_VERSION_template_haskell(2,12,0)
+{-# LANGUAGE Safe #-}
+# else
+{-# LANGUAGE Trustworthy #-}
+# endif
+#endif
+
 {- |
 Module      :  Lens.Micro.TH.Internal
 Copyright   :  (C) 2013-2016 Eric Mertens, Edward Kmett; 2018 Monadfix
@@ -9,7 +24,7 @@ away or change at any time; do not depend on it.
 module Lens.Micro.TH.Internal
 (
   -- * Name utilities
-  HasHame(..),
+  HasName(..),
 
   -- * Type variable utilities
   HasTypeVars(..),
@@ -22,6 +37,20 @@ module Lens.Micro.TH.Internal
   quantifyType, quantifyType',
 )
 where
+
+import qualified Data.Map as Map
+import           Data.Map (Map)
+import qualified Data.Set as Set
+import           Data.Set (Set)
+import           Data.List (nub)
+import           Data.Maybe
+import           Lens.Micro
+import           Language.Haskell.TH
+
+#if __GLASGOW_HASKELL__ < 710
+import           Control.Applicative
+import           Data.Traversable (traverse, sequenceA)
+#endif
 
 -- | Has a 'Name'
 class HasName t where

@@ -9,10 +9,13 @@ module Lens.Micro.Pro.Internal
 (
   Iso, Iso',
   Prism, Prism',
+  SimpleReview,
 )
 where
 
 import Data.Profunctor
+import Data.Bifunctor
+import Data.Functor.Identity
 
 type Iso s t a b =
   forall p f. (Profunctor p, Functor f)
@@ -25,3 +28,7 @@ type Prism s t a b =
   => p a (f b) -> p s (f t)
 
 type Prism' s a = Prism s s a a
+
+type SimpleReview t b =
+  forall p. (Choice p, Bifunctor p)
+  => p b (Identity b) -> p t (Identity t)

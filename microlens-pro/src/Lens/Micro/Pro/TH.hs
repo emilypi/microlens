@@ -38,6 +38,9 @@ import Control.Applicative
 import Control.Monad
 import Data.Char (isUpper)
 import Data.List
+import Data.Monoid
+import qualified Data.Set as Set
+import Data.Set (Set)
 -- import Data.Set.Lens
 import Data.Traversable
 import Language.Haskell.TH
@@ -47,6 +50,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Lens.Micro
 import Lens.Micro.Extras
+import Lens.Micro.TH.Internal
 import Lens.Micro.Pro.Internal
 
 -- | Generate a 'Prism' for each constructor of a data type.
@@ -171,7 +175,7 @@ stabToType stab@(Stab cx ty s t a b) = ForallT vs cx $
   case ty of
     PrismType  | stabSimple stab -> ''Prism' `conAppsT` [t,b]
                | otherwise       -> ''Prism  `conAppsT` [s,t,a,b]
-    ReviewType                   -> ''Review `conAppsT` [t,b]
+    ReviewType                   -> ''SimpleReview `conAppsT` [t,b]
 
   where
   vs = map PlainTV
@@ -451,11 +455,9 @@ nconCxt f x = fmap (\y -> x {_nconCxt = y}) (f (_nconCxt x))
 nconTypes :: Lens' NCon [Type]
 nconTypes f x = fmap (\y -> x {_nconTypes = y}) (f (_nconTypes x))
 
-nconTypeVars :: _
-nconTypeVars s f (NCon x vars y z) =
-    NCon x vars <$> nconTypeVars s' f y <*> nconTypeVars s' f z
-  where
-    s' = foldl' (flip Set.insert) s vars
+instance HasTypeVars NCon where
+  typeVarsEx s f (NCon x vars y z) = NCon x vars <$> typeVarsEx s' f y <*> typeVarsEx s' f z
+    where s' = foldl' (flip Set.insert) s vars
 
 -- | Normalize a single 'Con' to its constructor name and field types.
 normalizeCon :: D.ConstructorInfo -> NCon
@@ -479,3 +481,16 @@ close :: Type -> TypeQ
 close t = forallT (map PlainTV (Set.toList vs)) (cxt[]) (return t)
   where
   vs = setOf typeVars t
+
+
+setOf :: Ord a => Getting (Endo [a]) s a -> s -> Set a
+setOf l s = Set.fromList (s ^.. l)
+
+-- @fromSet@ wasn't always there, and we need compatibility with
+-- containers-0.4 to compile on GHC 7.4.
+fromSet :: (k -> v) -> Set.Set k -> Map.Map k v
+#if MIN_VERSION_containers(0,5,0)
+fromSet = Map.fromSet
+#else
+fromSet f x = Map.fromDistinctAscList [ (k,f k) | k <- Set.toAscList x ]
+#endif
