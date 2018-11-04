@@ -4,7 +4,13 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeFamilies #-}
+
+-- We depend on Lens.Micro.Internal, which is Trustworthy/Unsafe respectively
+#if __GLASGOW_HASKELL__ >= 708
+{-# LANGUAGE Safe #-}
+#else
 {-# LANGUAGE Trustworthy #-}
+#endif
 
 -- This is needed because ErrorT is deprecated.
 {-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
@@ -44,17 +50,15 @@ module Lens.Micro.Mtl
 )
 where
 
+import Lens.Micro
+import Lens.Micro.Internal (( #. ), foldMapOf)
+import Lens.Micro.Mtl.Internal
 
 import Control.Applicative
 import Data.Monoid
 
 import Control.Monad.Reader as Reader
 import Control.Monad.State as State
--- microlens
-import Lens.Micro
-import Lens.Micro.Internal
--- Internal modules
-import Lens.Micro.Mtl.Internal
 
 
 {- |

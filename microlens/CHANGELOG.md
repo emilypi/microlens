@@ -1,3 +1,7 @@
+# 0.4.10.1
+
+* `Lens.Micro.Internal` is trustworthy on newer GHCs now.
+
 # 0.4.10
 
 * Added `+~` and `-~`.
@@ -5,7 +9,7 @@
 
 # 0.4.9.1
 
-* Reexported `<&>` from `Data.Functor` (on recent versions of `base`).
+* Reexported `<&>` from `Data.Functor` (for recent versions of `base`).
 
 # 0.4.9
 

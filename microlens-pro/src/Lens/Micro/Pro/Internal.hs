@@ -1,12 +1,11 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE CPP #-}
 
-#if (MIN_VERSION_profunctors(4,4,0)) && __GLASGOW_HASKELL__ >= 708
-#define USE_COERCE
-{-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+-- We depend on Lens.Micro.Internal, which is Trustworthy/Unsafe respectively
+#if __GLASGOW_HASKELL__ >= 708
+{-# LANGUAGE Safe #-}
 #else
-{-# LANGUAGE Unsafe #-}
+{-# LANGUAGE Trustworthy #-}
 #endif
 
 {- |
@@ -35,10 +34,6 @@ module Lens.Micro.Pro.Internal
   SimpleReview,
   unto,
   AReview,
-
-  -- * Coerce compatibility shim
-  coerce,
-  coerce',
 )
 where
 
@@ -48,12 +43,7 @@ import Data.Bifunctor
 import Data.Functor.Identity
 import Data.Void
 import Data.Tagged
-
-#ifdef USE_COERCE
-import Data.Coerce
-#else
-import Unsafe.Coerce
-#endif
+import Lens.Micro.Internal (coerce, coerce')
 
 ----------------------------------------------------------------------------
 -- Iso
@@ -152,13 +142,8 @@ prism bt seta = dimap seta (either pure (fmap bt)) . right'
 
 -- | Convert 'APrism' to the pair of functions that characterize it.
 withPrism :: APrism s t a b -> ((b -> t) -> (s -> Either t a) -> r) -> r
-#if MIN_VERSION_base(4,7,0)
 withPrism k f = case coerce (k (Market Identity Right)) of
   Market bt seta -> f bt seta
-#else
-withPrism k f = case unsafeCoerce (k (Market Identity Right)) of
-  Market bt seta -> f bt seta
-#endif
 {-# INLINE withPrism #-}
 
 -- | Clone a 'Prism' so that you can reuse the same monomorphically typed
@@ -182,19 +167,3 @@ unto :: (Profunctor p, Bifunctor p, Functor f)
      => (b -> t) -> p a (f b) -> p s (f t)
 unto f = first absurd . lmap absurd . rmap (fmap f)
 {-# INLINE unto #-}
-
-----------------------------------------------------------------------------
--- Coerce shim
-----------------------------------------------------------------------------
-
-#ifdef USE_COERCE
-coerce' :: forall a b. Coercible a b => b -> a
-coerce' = coerce (id :: a -> a)
-{-# INLINE coerce' #-}
-#else
-coerce, coerce' :: a -> b
-coerce  = unsafeCoerce
-coerce' = unsafeCoerce
-{-# INLINE coerce #-}
-{-# INLINE coerce' #-}
-#endif

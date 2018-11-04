@@ -1,5 +1,11 @@
-{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE CPP #-}
 
+-- We depend on Lens.Micro.Internal, which is Trustworthy/Unsafe respectively
+#if __GLASGOW_HASKELL__ >= 708
+{-# LANGUAGE Safe #-}
+#else
+{-# LANGUAGE Trustworthy #-}
+#endif
 
 {- |
 Module      :  Lens.Micro.Extras

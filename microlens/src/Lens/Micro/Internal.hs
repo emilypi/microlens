@@ -10,8 +10,13 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE ImplicitParams #-}
-{-# LANGUAGE Unsafe #-}
 
+#if __GLASGOW_HASKELL__ >= 708
+#define USE_COERCE
+{-# LANGUAGE Trustworthy #-}
+#else
+{-# LANGUAGE Unsafe #-}
+#endif
 
 {- |
 Module      :  Lens.Micro.Internal
@@ -35,8 +40,6 @@ module Lens.Micro.Internal
   foldrOf,
   foldMapOf,
   sets,
-  ( #. ),
-  ( .# ),
   phantom,
   Each(..),
   Index,
@@ -55,6 +58,12 @@ module Lens.Micro.Internal
 
   -- * CallStack
   HasCallStack,
+
+  -- * Coerce and unsafe bits
+  coerce,
+  coerce',
+  ( #. ),
+  ( .# ),
 )
 where
 
@@ -75,7 +84,7 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.Traversable
 #endif
 
-#if __GLASGOW_HASKELL__ >= 708
+#ifdef USE_COERCE
 import Data.Coerce
 #else
 import Unsafe.Coerce
@@ -151,30 +160,6 @@ phantom = Const #. getConst
 noEffect :: Monoid r => Const r a
 noEffect = phantom (pure ())
 {-# INLINE noEffect #-}
-
-------------------------------------------------------------------------------
--- Data.Profunctor.Unsafe
-------------------------------------------------------------------------------
-
-#if __GLASGOW_HASKELL__ >= 708
-( #. ) :: Coercible c b => (b -> c) -> (a -> b) -> (a -> c)
-( #. ) _ = coerce (\x -> x :: b) :: forall a b. Coercible b a => a -> b
-
-( .# ) :: Coercible b a => (b -> c) -> (a -> b) -> (a -> c)
-( .# ) pbc _ = coerce pbc
-#else
-( #. ) :: (b -> c) -> (a -> b) -> (a -> c)
-( #. ) _ = unsafeCoerce
-
-( .# ) :: (b -> c) -> (a -> b) -> (a -> c)
-( .# ) pbc _ = unsafeCoerce pbc
-#endif
-
-{-# INLINE ( #. ) #-}
-{-# INLINE ( .# ) #-}
-
-infixr 9 #.
-infixl 8 .#
 
 ------------------------------------------------------------------------------
 -- classes
@@ -602,3 +587,41 @@ stripDiacritics = ...
 "hello" :: Lazy.Text
   -}
   lazy   :: Lens' strict lazy
+
+----------------------------------------------------------------------------
+-- Coerce and unsafe bits
+----------------------------------------------------------------------------
+
+#ifdef USE_COERCE
+
+coerce' :: forall a b. Coercible a b => b -> a
+coerce' = coerce (id :: a -> a)
+{-# INLINE coerce' #-}
+
+( #. ) :: Coercible c b => (b -> c) -> (a -> b) -> (a -> c)
+( #. ) _ = coerce (\x -> x :: b) :: forall a b. Coercible b a => a -> b
+
+( .# ) :: Coercible b a => (b -> c) -> (a -> b) -> (a -> c)
+( .# ) pbc _ = coerce pbc
+
+#else
+
+coerce, coerce' :: a -> b
+coerce  = unsafeCoerce
+coerce' = unsafeCoerce
+{-# INLINE coerce #-}
+{-# INLINE coerce' #-}
+
+( #. ) :: (b -> c) -> (a -> b) -> (a -> c)
+( #. ) _ = unsafeCoerce
+
+( .# ) :: (b -> c) -> (a -> b) -> (a -> c)
+( .# ) pbc _ = unsafeCoerce pbc
+
+#endif
+
+{-# INLINE ( #. ) #-}
+{-# INLINE ( .# ) #-}
+
+infixr 9 #.
+infixl 8 .#

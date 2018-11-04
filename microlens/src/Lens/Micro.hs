@@ -6,7 +6,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE ConstraintKinds #-}
+
+-- We depend on Lens.Micro.Internal, which is Trustworthy/Unsafe respectively
+#if __GLASGOW_HASKELL__ >= 708
+{-# LANGUAGE Safe #-}
+#else
 {-# LANGUAGE Trustworthy #-}
+#endif
 
 
 {- |
@@ -112,7 +118,6 @@ import Data.Monoid
 import Data.Maybe
 import Data.Tuple
 import qualified Data.Foldable as F
-import Unsafe.Coerce
 
 #if MIN_VERSION_base(4,8,0)
 import Data.Function ((&))
@@ -1015,7 +1020,7 @@ singular l afb s = case ins b of
   where
     Bazaar b = l sell s
     sell w = Bazaar ($ w)
-    ins f = (unsafeCoerce :: [Identity a] -> [a])
+    ins f = (coerce :: [Identity a] -> [a])
               (getConst (f (\ra -> Const [Identity ra])))
     unsafeOuts f = evalState (f (\_ -> state (unconsWithDefault fakeVal)))
       where fakeVal = error "unsafeOuts: not enough elements were supplied"
@@ -1236,7 +1241,7 @@ Left 3
 Left 5
 @
 
-However, it's not possible for microlens to export prisms, because their type depends on @<http://hackage.haskell.org/package/profunctors/docs/Data-Profunctor.html#t:Choice Choice>@ from <http://hackage.haskell.org/package/profunctors profunctors>. So, all prisms included here are traversals instead (and you can't reverse them).
+However, it's not possible for microlens to export prisms, because their type depends on @<http://hackage.haskell.org/package/profunctors/docs/Data-Profunctor.html#t:Choice Choice>@ from <http://hackage.haskell.org/package/profunctors profunctors>. So, all prisms included here are traversals instead (and you can't reverse them). Use <http://hackage.hackell.org/package/microlens-pro microlens-pro> or <http://hackage.hackell.org/package/lens lens> if you need proper prisms.
 -}
 
 {- |
