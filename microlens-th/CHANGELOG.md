@@ -2,6 +2,8 @@
 
 * Exported internal utilities in `Lens.Micro.TH.Internal`.
 * Started using `TemplateHaskellQuotes` on GHC 8.0 and newer, thus making it possible to use microlens-th without full Template Haskell support.
+* Removed `-f inlining` (now we always do inlining).
+* Marked modules as trustworthy.
 
 # 0.4.2.3
 

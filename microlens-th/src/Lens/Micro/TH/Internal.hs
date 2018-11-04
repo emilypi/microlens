@@ -5,12 +5,10 @@
 #define MIN_VERSION_template_haskell(x,y,z) (defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 706)
 #endif
 
-#ifdef TRUSTWORTHY
-# if MIN_VERSION_template_haskell(2,12,0)
+#if MIN_VERSION_template_haskell(2,12,0)
 {-# LANGUAGE Safe #-}
-# else
+#else
 {-# LANGUAGE Trustworthy #-}
-# endif
 #endif
 
 {- |
@@ -151,27 +149,12 @@ substTypeVars m = over typeVars $ \n -> fromMaybe n (Map.lookup n m)
 -- | Generate an INLINE pragma.
 inlinePragma :: Name -> [DecQ]
 
-#ifdef INLINING
-
 #if MIN_VERSION_template_haskell(2,8,0)
-
-# ifdef OLD_INLINE_PRAGMAS
--- 7.6rc1?
-inlinePragma methodName = [pragInlD methodName (inlineSpecNoPhase Inline False)]
-# else
 -- 7.7.20120830
 inlinePragma methodName = [pragInlD methodName Inline FunLike AllPhases]
-# endif
-
 #else
 -- GHC <7.6, TH <2.8.0
 inlinePragma methodName = [pragInlD methodName (inlineSpecNoPhase True False)]
-#endif
-
-#else
-
-inlinePragma _ = []
-
 #endif
 
 -- | Apply arguments to a type constructor.

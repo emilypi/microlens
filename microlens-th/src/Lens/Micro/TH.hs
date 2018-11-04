@@ -17,12 +17,10 @@
 #define MIN_VERSION_containers(x,y,z) 1
 #endif
 
-#ifdef TRUSTWORTHY
-# if MIN_VERSION_template_haskell(2,12,0)
+#if MIN_VERSION_template_haskell(2,12,0)
 {-# LANGUAGE Safe #-}
-# else
+#else
 {-# LANGUAGE Trustworthy #-}
-# endif
 #endif
 
 
