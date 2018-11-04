@@ -29,25 +29,15 @@ module Lens.Micro.Pro.TH
 )
 where
 
-import Control.Applicative
--- import Control.Lens.Fold
--- import Control.Lens.Getter
--- import Control.Lens.Internal.TH
--- import Control.Lens.Lens
--- import Control.Lens.Setter
-import Control.Monad
 import Data.Char (isUpper)
 import Data.List
 import Data.Monoid
 import qualified Data.Set as Set
 import Data.Set (Set)
--- import Data.Set.Lens
 import Data.Traversable
 import Language.Haskell.TH
 import qualified Language.Haskell.TH.Datatype as D
--- import Language.Haskell.TH.Lens
 import qualified Data.Map as Map
-import qualified Data.Set as Set
 import Lens.Micro
 import Lens.Micro.Extras
 import Lens.Micro.TH.Internal
@@ -257,7 +247,7 @@ makeConPrismExp ::
   [NCon] {- ^ constructors       -} ->
   NCon   {- ^ target constructor -} ->
   ExpQ
-makeConPrismExp stab cons con = appsE [varE prismValName, reviewer, remitter]
+makeConPrismExp stab cons con = appsE [varE 'prism, reviewer, remitter]
   where
   ts = view nconTypes con
   fields  = length ts
@@ -272,7 +262,7 @@ makeConPrismExp stab cons con = appsE [varE prismValName, reviewer, remitter]
 --
 -- iso <<reviewer>> <<remitter>>
 makeConIsoExp :: NCon -> ExpQ
-makeConIsoExp con = appsE [varE isoValName, remitter, reviewer]
+makeConIsoExp con = appsE [varE 'iso, remitter, reviewer]
   where
   conName = view nconName con
   fields  = length (view nconTypes con)
@@ -285,7 +275,7 @@ makeConIsoExp con = appsE [varE isoValName, remitter, reviewer]
 --
 -- unto (\(x,y,z) -> Con x y z)
 makeConReviewExp :: NCon -> ExpQ
-makeConReviewExp con = appE (varE untoValName) reviewer
+makeConReviewExp con = appE (varE 'unto) reviewer
   where
   conName = view nconName con
   fields  = length (view nconTypes con)
@@ -321,9 +311,9 @@ makeSimpleRemitter conName fields =
      xs <- newNames "y" fields
      let matches =
            [ match (conP conName (map varP xs))
-                   (normalB (appE (conE rightDataName) (toTupleE (map varE xs))))
+                   (normalB (appE (conE 'Right) (toTupleE (map varE xs))))
                    []
-           , match wildP (normalB (appE (conE leftDataName) (varE x))) []
+           , match wildP (normalB (appE (conE 'Left) (varE x))) []
            ]
      lam1E (varP x) (caseE (varE x) matches)
 
@@ -344,8 +334,8 @@ makeFullRemitter cons target =
        match (conP conName (map varP xs))
              (normalB
                (if conName == target
-                  then appE (conE rightDataName) (toTupleE (map varE xs))
-                  else appE (conE leftDataName) (conE conName `appsE1` map varE xs)))
+                  then appE (conE 'Right) (toTupleE (map varE xs))
+                  else appE (conE 'Left) (conE conName `appsE1` map varE xs)))
              []
 
 
@@ -390,7 +380,7 @@ makeClassyPrismClass t className methodName cons =
     do Stab cx o _ _ _ b <- computeOpticType t cons con
        let stab' = Stab cx o r r b b
            defName = view nconName con
-           body    = appsE [varE composeValName, varE methodName, varE defName]
+           body    = appsE [varE '(.), varE methodName, varE defName]
        sequenceA
          [ sigD defName        (return (stabToType stab'))
          , valD (varP defName) (normalB body) []
@@ -421,7 +411,7 @@ makeClassyPrismInstance s className methodName cons =
 
      instanceD (cxt[]) (return cls)
        (   valD (varP methodName)
-                (normalB (varE idValName)) []
+                (normalB (varE 'id)) []
        : [ do stab <- computeOpticType s cons con
               let stab' = simplifyStab stab
               valD (varP (prismName conName))
@@ -494,3 +484,26 @@ fromSet = Map.fromSet
 #else
 fromSet f x = Map.fromDistinctAscList [ (k,f k) | k <- Set.toAscList x ]
 #endif
+
+-- | Apply arguments to a type constructor
+appsT :: TypeQ -> [TypeQ] -> TypeQ
+appsT = foldl appT
+
+-- | Apply arguments to a function
+appsE1 :: ExpQ -> [ExpQ] -> ExpQ
+appsE1 = foldl appE
+
+-- | Construct a tuple type given a list of types.
+toTupleT :: [TypeQ] -> TypeQ
+toTupleT [x] = x
+toTupleT xs = appsT (tupleT (length xs)) xs
+
+-- | Construct a tuple value given a list of expressions.
+toTupleE :: [ExpQ] -> ExpQ
+toTupleE [x] = x
+toTupleE xs = tupE xs
+
+-- | Construct a tuple pattern given a list of patterns.
+toTupleP :: [PatQ] -> PatQ
+toTupleP [x] = x
+toTupleP xs = tupP xs

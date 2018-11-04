@@ -35,6 +35,7 @@ module Lens.Micro.Pro
   coerced,
   AReview,
   review,
+  unto,
 
   -- * Prism: deconstructs sum types (half-traversal, half-isomorphism)
   Prism, Prism',
@@ -110,10 +111,6 @@ withIso ai k = case ai (Exchange id Identity) of
   Exchange sa bt -> k sa (runIdentity #. bt)
 {-# INLINE withIso #-}
 
-iso :: (s -> a) -> (b -> t) -> Iso s t a b
-iso sa bt = dimap sa (fmap bt)
-{-# INLINE iso #-}
-
 from :: Iso s t a b -> Iso b a t s
 from l = withIso l $ \ sa bt -> iso bt sa
 {-# INLINE from #-}
@@ -165,10 +162,6 @@ coerced l = case sym Coercion :: Coercion a s of
 ----------------------------------------------------------------------------
 -- Prisms
 ----------------------------------------------------------------------------
-
-prism :: (b -> t) -> (s -> Either t a) -> Prism s t a b
-prism bt seta = dimap seta (either pure (fmap bt)) . right'
-{-# INLINE prism #-}
 
 prism' :: (b -> s) -> (s -> Maybe a) -> Prism s s a b
 prism' bs sma = prism bs (\s -> maybe (Left s) Right (sma s))
