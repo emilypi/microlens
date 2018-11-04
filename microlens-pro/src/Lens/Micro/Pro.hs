@@ -27,14 +27,16 @@ module Lens.Micro.Pro
 #if __GLASGOW_HASKELL__ >= 708
   coerced,
 #endif
-  AReview,
-  review,
-  unto,
 
-  -- * Prism: deconstructs sum types (half-traversal, half-isomorphism)
+  -- * Prism: inspects sum types (half-traversal, half-isomorphism)
   Prism, Prism',
   prism, prism',
   only,
+
+  -- * Review: constructs a branch of a sum type
+  AReview,
+  review,
+  unto,
 
   -- * Generating prisms and isomorphisms
   makePrisms,
@@ -87,10 +89,6 @@ non' p = iso (fromMaybe def) go where
        | otherwise              = Just b
 {-# INLINE non' #-}
 
-review :: MonadReader b m => AReview t b -> m t
-review p = asks (runIdentity #. unTagged #. p .# Tagged .# Identity)
-{-# INLINE review #-}
-
 #if __GLASGOW_HASKELL__ >= 708
 -- | Data types that are representationally equal are isomorphic.
 --
@@ -116,3 +114,11 @@ prism' bs sma = prism bs (\s -> maybe (Left s) Right (sma s))
 only :: Eq a => a -> Prism' a ()
 only a = prism' (\() -> a) $ guard . (a ==)
 {-# INLINE only #-}
+
+----------------------------------------------------------------------------
+-- Review
+----------------------------------------------------------------------------
+
+review :: MonadReader b m => AReview t b -> m t
+review p = asks (runIdentity #. unTagged #. p .# Tagged .# Identity)
+{-# INLINE review #-}
