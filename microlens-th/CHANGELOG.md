@@ -1,6 +1,7 @@
 # 0.4.2.4
 
 * Exported internal utilities in `Lens.Micro.TH.Internal`.
+* Started using `TemplateHaskellQuotes` on GHC 8.0 and newer, thus making it possible to use microlens-th without full Template Haskell support.
 
 # 0.4.2.3
 
