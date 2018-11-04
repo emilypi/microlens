@@ -1,3 +1,7 @@
+# 0.4.10.1
+
+* `Lens.Micro.GHC.Internal` has been marked as trustworthy.
+
 # 0.4.10
 
 * New minor release (microlens-0.4.10).

@@ -3,7 +3,13 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+
+-- We depend on Lens.Micro.Internal, which is Trustworthy/Unsafe respectively
+#if __GLASGOW_HASKELL__ >= 708
+{-# LANGUAGE Safe #-}
+#else
 {-# LANGUAGE Trustworthy #-}
+#endif
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
