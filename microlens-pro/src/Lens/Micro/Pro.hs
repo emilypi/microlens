@@ -40,6 +40,10 @@ module Lens.Micro.Pro
   Prism, Prism',
   prism, prism',
   only,
+
+  -- * Making prisms and isomorphisms
+  makePrisms,
+  makeClassyPrisms,
 )
 where
 
@@ -51,6 +55,8 @@ import Data.Tagged
 import Data.Functor.Identity
 import Data.Maybe
 import Lens.Micro hiding (non)
+import Lens.Micro.Pro.TH
+import Lens.Micro.Pro.Internal
 
 #ifdef USE_COERCE
 import Data.Coerce
@@ -78,12 +84,6 @@ coerce' = unsafeCoerce
 ----------------------------------------------------------------------------
 -- Isomorphisms
 ----------------------------------------------------------------------------
-
-type Iso s t a b =
-  forall p f. (Profunctor p, Functor f)
-  => p a (f b) -> p s (f t)
-
-type Iso' s a = Iso s s a a
 
 data Exchange a b s t = Exchange (s -> a) (b -> t)
 
@@ -165,12 +165,6 @@ coerced l = case sym Coercion :: Coercion a s of
 ----------------------------------------------------------------------------
 -- Prisms
 ----------------------------------------------------------------------------
-
-type Prism s t a b =
-  forall p f. (Choice p, Applicative f)
-  => p a (f b) -> p s (f t)
-
-type Prism' s a = Prism s s a a
 
 prism :: (b -> t) -> (s -> Either t a) -> Prism s t a b
 prism bt seta = dimap seta (either pure (fmap bt)) . right'
