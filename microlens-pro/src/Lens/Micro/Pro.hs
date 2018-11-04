@@ -24,7 +24,9 @@ module Lens.Micro.Pro
   non',
   enum,
   mapping,
+#if __GLASGOW_HASKELL__ >= 708
   coerced,
+#endif
   AReview,
   review,
   unto,
