@@ -1,3 +1,7 @@
+# 0.4.2.4
+
+* Exported internal utilities in `Lens.Micro.TH.Internal`.
+
 # 0.4.2.3
 
 * Bumped template-haskell version.
