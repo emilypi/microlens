@@ -20,15 +20,21 @@ module Lens.Micro.Pro.Internal
   Iso, Iso',
   iso,
   Exchange(..),
+  AnIso, AnIso',
+  withIso,
 
   -- * Prism
   Prism, Prism',
   prism,
   Market(..),
+  APrism, APrism',
+  withPrism,
+  clonePrism,
 
   -- * Review
   SimpleReview,
   unto,
+  AReview,
 
   -- * Coerce compatibility shim
   coerce,
@@ -41,6 +47,7 @@ import Data.Profunctor.Unsafe
 import Data.Bifunctor
 import Data.Functor.Identity
 import Data.Void
+import Data.Tagged
 
 #ifdef USE_COERCE
 import Data.Coerce
@@ -57,6 +64,11 @@ type Iso s t a b =
   => p a (f b) -> p s (f t)
 
 type Iso' s a = Iso s s a a
+
+type AnIso s t a b
+    = Exchange a b a (Identity b) -> Exchange a b s (Identity t)
+
+type AnIso' s a = AnIso s s a a
 
 iso :: (s -> a) -> (b -> t) -> Iso s t a b
 iso sa bt = dimap sa (fmap bt)
@@ -80,6 +92,13 @@ instance Profunctor (Exchange a b) where
   ( .# ) p _ = coerce p
   {-# INLINE ( .# ) #-}
 
+-- | Extract the two functions, one from @s -> a@ and
+-- one from @b -> t@ that characterize an 'Iso'.
+withIso :: AnIso s t a b -> ((s -> a) -> (b -> t) -> r) -> r
+withIso ai k = case ai (Exchange id Identity) of
+  Exchange sa bt -> k sa (runIdentity #. bt)
+{-# INLINE withIso #-}
+
 ----------------------------------------------------------------------------
 -- Prism
 ----------------------------------------------------------------------------
@@ -89,6 +108,11 @@ type Prism s t a b =
   => p a (f b) -> p s (f t)
 
 type Prism' s a = Prism s s a a
+
+type APrism s t a b =
+    Market a b a (Identity b) -> Market a b s (Identity t)
+
+type APrism' s a = APrism s s a a
 
 data Market a b s t = Market (b -> t) (s -> Either t a)
 
@@ -126,6 +150,26 @@ prism :: (b -> t) -> (s -> Either t a) -> Prism s t a b
 prism bt seta = dimap seta (either pure (fmap bt)) . right'
 {-# INLINE prism #-}
 
+-- | Convert 'APrism' to the pair of functions that characterize it.
+withPrism :: APrism s t a b -> ((b -> t) -> (s -> Either t a) -> r) -> r
+#if MIN_VERSION_base(4,7,0)
+withPrism k f = case coerce (k (Market Identity Right)) of
+  Market bt seta -> f bt seta
+#elif defined(SAFE)
+withPrism k f = case k (Market Identity Right) of
+  Market bt seta -> f (runIdentity #. bt) (either (Left . runIdentity) Right . seta)
+#else
+withPrism k f = case unsafeCoerce (k (Market Identity Right)) of
+  Market bt seta -> f bt seta
+#endif
+{-# INLINE withPrism #-}
+
+-- | Clone a 'Prism' so that you can reuse the same monomorphically typed
+-- 'Prism' for different purposes.
+clonePrism :: APrism s t a b -> Prism s t a b
+clonePrism k = withPrism k prism
+{-# INLINE clonePrism #-}
+
 ----------------------------------------------------------------------------
 -- Review
 ----------------------------------------------------------------------------
@@ -133,6 +177,9 @@ prism bt seta = dimap seta (either pure (fmap bt)) . right'
 type SimpleReview t b =
   forall p. (Choice p, Bifunctor p)
   => p b (Identity b) -> p t (Identity t)
+
+type AReview t b
+    = Tagged b (Identity b) -> Tagged t (Identity t)
 
 unto :: (Profunctor p, Bifunctor p, Functor f)
      => (b -> t) -> p a (f b) -> p s (f t)

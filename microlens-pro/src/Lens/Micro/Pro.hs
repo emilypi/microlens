@@ -59,14 +59,7 @@ import Data.Coerce
 -- Isomorphisms
 ----------------------------------------------------------------------------
 
--- | Extract the two functions, one from @s -> a@ and
--- one from @b -> t@ that characterize an 'Iso'.
-withIso :: Iso s t a b -> ((s -> a) -> (b -> t) -> r) -> r
-withIso ai k = case ai (Exchange id Identity) of
-  Exchange sa bt -> k sa (runIdentity #. bt)
-{-# INLINE withIso #-}
-
-from :: Iso s t a b -> Iso b a t s
+from :: AnIso s t a b -> Iso b a t s
 from l = withIso l $ \ sa bt -> iso bt sa
 {-# INLINE from #-}
 
@@ -77,24 +70,20 @@ enum = iso toEnum fromEnum
 -- | This can be used to lift any 'Iso' into an arbitrary 'Functor'.
 mapping
   :: (Functor f, Functor g)
-  => Iso s t a b -> Iso (f s) (g t) (f a) (g b)
+  => AnIso s t a b -> Iso (f s) (g t) (f a) (g b)
 mapping k = withIso k $ \ sa bt -> iso (fmap sa) (fmap bt)
 {-# INLINE mapping #-}
 
 non :: Eq a => a -> Iso' (Maybe a) a
-non a = non' (only a)
+non = non' . only
 {-# INLINE non #-}
 
--- TODO: (non' . only) is broken because of using Prism' instead of APrism'
-
-non' :: Prism' a () -> Iso' (Maybe a) a
+non' :: APrism' a () -> Iso' (Maybe a) a
 non' p = iso (fromMaybe def) go where
-  def                           = review p ()
-  go b | has p b                = Nothing
+  def                           = review (clonePrism p) ()
+  go b | has (clonePrism p) b   = Nothing
        | otherwise              = Just b
 {-# INLINE non' #-}
-
-type AReview t b = Tagged b (Identity b) -> Tagged t (Identity t)
 
 review :: MonadReader b m => AReview t b -> m t
 review p = asks (runIdentity #. unTagged #. p .# Tagged .# Identity)
