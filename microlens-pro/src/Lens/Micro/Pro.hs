@@ -6,14 +6,6 @@
 #define MIN_VERSION_profunctors(x,y,z) 0
 #endif
 
-#if (MIN_VERSION_profunctors(4,4,0)) && __GLASGOW_HASKELL__ >= 708
-#define USE_COERCE
-{-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-#else
-{-# LANGUAGE Unsafe #-}
-#endif
-
 {- |
 Module      :  Lens.Micro.Pro
 Copyright   :  (C) 2013-2016 Edward Kmett, 2018 Monadfix
@@ -42,7 +34,7 @@ module Lens.Micro.Pro
   prism, prism',
   only,
 
-  -- * Making prisms and isomorphisms
+  -- * Generating prisms and isomorphisms
   makePrisms,
   makeClassyPrisms,
 )
@@ -59,50 +51,13 @@ import Lens.Micro hiding (non)
 import Lens.Micro.Pro.TH
 import Lens.Micro.Pro.Internal
 
-#ifdef USE_COERCE
+#if __GLASGOW_HASKELL__ >= 708
 import Data.Coerce
-#else
-import Unsafe.Coerce
-#endif
-
-
-----------------------------------------------------------------------------
--- Coerce shim
-----------------------------------------------------------------------------
-
-#ifdef USE_COERCE
-coerce' :: forall a b. Coercible a b => b -> a
-coerce' = coerce (id :: a -> a)
-{-# INLINE coerce' #-}
-#else
-coerce, coerce' :: a -> b
-coerce  = unsafeCoerce
-coerce' = unsafeCoerce
-{-# INLINE coerce #-}
-{-# INLINE coerce' #-}
 #endif
 
 ----------------------------------------------------------------------------
 -- Isomorphisms
 ----------------------------------------------------------------------------
-
-data Exchange a b s t = Exchange (s -> a) (b -> t)
-
-instance Functor (Exchange a b s) where
-  fmap f (Exchange sa bt) = Exchange sa (f . bt)
-  {-# INLINE fmap #-}
-
-instance Profunctor (Exchange a b) where
-  dimap f g (Exchange sa bt) = Exchange (sa . f) (g . bt)
-  {-# INLINE dimap #-}
-  lmap f (Exchange sa bt) = Exchange (sa . f) bt
-  {-# INLINE lmap #-}
-  rmap f (Exchange sa bt) = Exchange sa (f . bt)
-  {-# INLINE rmap #-}
-  ( #. ) _ = coerce'
-  {-# INLINE ( #. ) #-}
-  ( .# ) p _ = coerce p
-  {-# INLINE ( .# ) #-}
 
 -- | Extract the two functions, one from @s -> a@ and
 -- one from @b -> t@ that characterize an 'Iso'.
