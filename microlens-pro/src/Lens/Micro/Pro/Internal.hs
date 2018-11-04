@@ -24,6 +24,7 @@ module Lens.Micro.Pro.Internal
   -- * Prism
   Prism, Prism',
   prism,
+  Market(..),
 
   -- * Review
   SimpleReview,
@@ -88,6 +89,38 @@ type Prism s t a b =
   => p a (f b) -> p s (f t)
 
 type Prism' s a = Prism s s a a
+
+data Market a b s t = Market (b -> t) (s -> Either t a)
+
+instance Functor (Market a b s) where
+  fmap f (Market bt seta) = Market (f . bt) (either (Left . f) Right . seta)
+  {-# INLINE fmap #-}
+
+instance Profunctor (Market a b) where
+  dimap f g (Market bt seta) = Market (g . bt) (either (Left . g) Right . seta . f)
+  {-# INLINE dimap #-}
+  lmap f (Market bt seta) = Market bt (seta . f)
+  {-# INLINE lmap #-}
+  rmap f (Market bt seta) = Market (f . bt) (either (Left . f) Right . seta)
+  {-# INLINE rmap #-}
+  ( #. ) _ = coerce'
+  {-# INLINE ( #. ) #-}
+  ( .# ) p _ = coerce p
+  {-# INLINE ( .# ) #-}
+
+instance Choice (Market a b) where
+  left' (Market bt seta) = Market (Left . bt) $ \sc -> case sc of
+    Left s -> case seta s of
+      Left t -> Left (Left t)
+      Right a -> Right a
+    Right c -> Left (Right c)
+  {-# INLINE left' #-}
+  right' (Market bt seta) = Market (Right . bt) $ \cs -> case cs of
+    Left c -> Left (Left c)
+    Right s -> case seta s of
+      Left t -> Left (Right t)
+      Right a -> Right a
+  {-# INLINE right' #-}
 
 prism :: (b -> t) -> (s -> Either t a) -> Prism s t a b
 prism bt seta = dimap seta (either pure (fmap bt)) . right'
