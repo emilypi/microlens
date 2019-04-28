@@ -1,3 +1,7 @@
+# Unreleased
+
+* Bumped template-haskell and th-abstraction versions.
+
 # 0.4.2.3
 
 * Bumped template-haskell version.

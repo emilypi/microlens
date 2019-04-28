@@ -1,3 +1,7 @@
+# 0.4.10.1
+
+* Fixed compilation on GHC 8.8 (thanks to @vmchale).
+
 # 0.4.10
 
 * Added `+~` and `-~`.
